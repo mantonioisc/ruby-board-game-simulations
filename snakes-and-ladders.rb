@@ -101,7 +101,11 @@ class Game
 
 	def initialize(use_brute_force, *player_names)
 		@dice = Dice.new
-		@board = generate_board use_brute_force
+
+		puts "Use brute force? #{use_brute_force}"
+		algorithm = if use_brute_force then get_brute_force_algorithm else get_standard_algorithm end
+		@board = generate_board &algorithm
+
 		i = 0
 		@players = player_names.map do |name|
 			i += 1
@@ -117,23 +121,22 @@ class Game
 
 	private
 
-	def generate_board(use_brute_force)
+	def generate_board()
 		number_of_snakes = 5
 		number_of_ladders =5
 		board_size = 30
 
-		#TODO use Method, Proc or lambda to change the algorithm here
-		if use_brute_force
-			snakes = generate_elements_by_brute_force(board_size, number_of_snakes) {|max_index| get_snake max_index }
-			ladders = generate_elements_by_brute_force(board_size, number_of_ladders) {|max_index| get_ladder max_index }
-		else
-			valid_range = 2..(board_size -1)
-			available_elements = valid_range.to_a.shuffle
-			snakes = generate_elements(available_elements, number_of_snakes) {|from, to| from > to ? Snake.new(from, to) : Snake.new(to, from) }
-			ladders = generate_elements(available_elements, number_of_ladders) {|from, to| if from < to then Ladder.new from, to else Ladder.new to, from end}
-		end
+		snakes, ladders = yield board_size, number_of_snakes, number_of_ladders
 
 		Board.new snakes, ladders
+	end
+
+	def get_brute_force_algorithm()
+		lambda do |board_size, number_of_snakes, number_of_ladders|
+			snakes = generate_elements_by_brute_force(board_size, number_of_snakes) {|max_index| get_snake max_index }
+			ladders = generate_elements_by_brute_force(board_size, number_of_ladders) {|max_index| get_ladder max_index }
+			[snakes, ladders]
+		end
 	end
 
 	def generate_elements_by_brute_force(board_size, number_of_elements)
@@ -157,6 +160,16 @@ class Game
 		puts "Restarting elements generation: #{e}"
 		elements.clear
 		retry
+	end
+
+	def get_standard_algorithm()
+		lambda do |board_size, number_of_snakes, number_of_ladders|
+			valid_range = 2..(board_size -1)
+			available_elements = valid_range.to_a.shuffle
+			snakes = generate_elements(available_elements, number_of_snakes) {|from, to| from > to ? Snake.new(from, to) : Snake.new(to, from) }
+			ladders = generate_elements(available_elements, number_of_ladders) {|from, to| if from < to then Ladder.new from, to else Ladder.new to, from end}
+			[snakes,ladders]
+		end
 	end
 
 	def generate_elements(available_elements, number_of_elements)
