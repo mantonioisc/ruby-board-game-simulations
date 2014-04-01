@@ -4,8 +4,6 @@
 # Now I want to see how Ruby fares with a simple game like this one.
 #
 
-CHIP_COLORS = [:blue, :red, :green, :white, :purple]
-
 class Snake
 	attr_accessor :from, :to
 
@@ -46,39 +44,86 @@ class Dice
 	end
 end
 
-DICE = Dice.new
-
 class Board
-	attr_accessor :snakes, :ladders
+	attr_accessor :snakes, :ladders, :rows, :cols
+
+	def initialize(snakes, ladders, rows = 6, cols = 5)
+		@snakes, @ladders, @rows, @cols = snakes, ladders, rows, cols
+		@size = @rows * @cols
+	end
+
+	def check_box(current_position, advance_positions)
+		next_position = current_position + advance_positions
+
+		if next_position > @size
+			puts "Current position + dice result is bigger than board size, bouncing back from end!"
+			next_position = current_position + (next_position - @size)
+		end
+
+		tentative_next_position = next_position
+
+		snakes.each do |snake|
+			if snake.from == next_position
+				puts snake
+				next_position = snake.to
+			end
+		end
+
+		ladders.each do |ladder|
+			if ladder.from == next_position
+				puts ladder
+				next_position = ladder.to
+			end
+		end
+
+		puts "Current position #{current_position}, tentative #{tentative_next_position} and true next position #{next_position}"
+
+		next_position
+	end
 end
 
 class Player
-	attr_accessor :name, :chip, :dice
+	attr_accessor :name, :chip
 
-	def initialize(name, chip, dice = DICE)
-		@name, @chip, @dice = name, chip, dice
+	def initialize(name, chip)
+		@name, @chip = name, chip
 	end
 
-	def takeTurn()
-		advance_positions = @dice.throw
-		puts "Player #{@name}:#{@chip} advances #{advance_positions}"
+	def takeTurn(dice)
+		advance_positions = dice.throw
+		puts "Player #{@chip}:#{@name} advances #{advance_positions}"
 		advance_positions
 	end
 end
 
 class Game
+	CHIP_COLORS = [:blue, :red, :purple, :white, :green, :yellow]
 
+	def initialize( *player_names )
+		@dice = Dice.new
+		@board = generate_board
+		i = 0
+		@players = player_names.map do |name|
+			i += 1
+			Player.new name, CHIP_COLORS[i - 1]
+		end
+	end
+
+	def play
+		@players.each{ |player| player.takeTurn @dice}
+	end
+
+	private
+	def generate_board()
+		# TODO create this randomly
+		snakes = [Snake.new(6, 1), Snake.new(10, 5), Snake.new(29, 20)]
+		ladders = [Ladder.new(11, 16), Ladder.new(21, 26), Ladder.new(18, 23)]
+
+		Board.new snakes, ladders
+	end
 end
 
 
-snake = Snake.new 10, 5
-ladder = Ladder.new 15, 20
-dice = Dice.new
-player = Player.new "Solid Snake", :blue
-
-puts snake
-puts ladder
-puts dice.throw
-puts dice.throwTwice
-puts DICE.throw
-player.takeTurn
+board = Game.new "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
+p board
+board.play
