@@ -99,9 +99,9 @@ end
 class Game
 	CHIP_COLORS = [:blue, :red, :purple, :white, :green, :yellow]
 
-	def initialize( *player_names )
+	def initialize(use_brute_force, *player_names)
 		@dice = Dice.new
-		@board = generate_board
+		@board = generate_board use_brute_force
 		i = 0
 		@players = player_names.map do |name|
 			i += 1
@@ -117,15 +117,21 @@ class Game
 
 	private
 
-	def generate_board()
+	def generate_board(use_brute_force)
 		number_of_snakes = 5
 		number_of_ladders =5
 		board_size = 30
-		# TODO create this randomly
-		#snakes = [Snake.new(6, 1), Snake.new(10, 5), Snake.new(29, 20)]
-		#ladders = [Ladder.new(11, 16), Ladder.new(21, 26), Ladder.new(18, 23)]
-		snakes = generate_elements_by_brute_force(board_size, number_of_snakes) {|max_index| get_snake max_index }
-		ladders = generate_elements_by_brute_force(board_size, number_of_ladders) {|max_index| get_ladder max_index }
+
+		#TODO use Method, Proc or lambda to change the algorithm here
+		if use_brute_force
+			snakes = generate_elements_by_brute_force(board_size, number_of_snakes) {|max_index| get_snake max_index }
+			ladders = generate_elements_by_brute_force(board_size, number_of_ladders) {|max_index| get_ladder max_index }
+		else
+			valid_range = 2..(board_size -1)
+			available_elements = valid_range.to_a.shuffle
+			snakes = generate_elements(available_elements, number_of_snakes) {|from, to| from > to ? Snake.new(from, to) : Snake.new(to, from) }
+			ladders = generate_elements(available_elements, number_of_ladders) {|from, to| if from < to then Ladder.new from, to else Ladder.new to, from end}
+		end
 
 		Board.new snakes, ladders
 	end
@@ -153,6 +159,19 @@ class Game
 		retry
 	end
 
+	def generate_elements(available_elements, number_of_elements)
+		elements = []
+
+		number_of_elements.times do
+			p available_elements
+			first = available_elements.shift
+			second = available_elements.shift
+			elements << (yield first, second)
+		end
+
+		elements
+	end
+
 	def get_snake(board_size)
 		random = Random.new
 		from = random.rand 2..(board_size - 1)
@@ -170,6 +189,6 @@ class Game
 end
 
 
-board = Game.new "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
+board = Game.new false, "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
 p board
 board.play
