@@ -5,7 +5,7 @@
 #
 
 class Snake
-	attr_accessor :from, :to
+	attr_reader :from, :to
 
 	def initialize(from, to)
 		raise ArgumentError, "In snakes, from must be bigger than to" if from <= to
@@ -18,7 +18,7 @@ class Snake
 end
 
 class Ladder
-	attr_accessor :from, :to
+	attr_reader :from, :to
 
 	def initialize(from, to)
 		raise ArgumentError, "In ladders, from must be less than to" if from >= to
@@ -45,7 +45,7 @@ class Dice
 end
 
 class Board
-	attr_accessor :snakes, :ladders, :rows, :cols
+	attr_reader :snakes, :ladders, :rows, :cols
 
 	def initialize(snakes, ladders, rows = 6, cols = 5)
 		@snakes, @ladders, @rows, @cols = snakes, ladders, rows, cols
@@ -83,7 +83,7 @@ class Board
 end
 
 class Player
-	attr_accessor :name, :chip
+	attr_reader :name, :chip
 
 	def initialize(name, chip)
 		@name, @chip = name, chip
