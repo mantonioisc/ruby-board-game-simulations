@@ -124,64 +124,32 @@ class Game
 		# TODO create this randomly
 		#snakes = [Snake.new(6, 1), Snake.new(10, 5), Snake.new(29, 20)]
 		#ladders = [Ladder.new(11, 16), Ladder.new(21, 26), Ladder.new(18, 23)]
-		snakes = generate_snakes_by_brute_force board_size, number_of_snakes
-		ladders = generate_ladders_by_brute_force board_size, number_of_ladders
-
-		number_of_ladders.times do
-			begin
-				ladders << get_ladder( board_size )
-			rescue StandardError => e
-				puts "Invalid ladder, retry. message: #{e}"
-				retry
-			end
-		end
+		snakes = generate_elements_by_brute_force(board_size, number_of_snakes) {|max_index| get_snake max_index }
+		ladders = generate_elements_by_brute_force(board_size, number_of_ladders) {|max_index| get_ladder max_index }
 
 		Board.new snakes, ladders
 	end
 
-	def generate_snakes_by_brute_force(board_size, number_of_snakes)
-		snakes = []
-		number_of_snakes.times do
+	def generate_elements_by_brute_force(board_size, number_of_elements)
+		elements = []
+		number_of_elements.times do
 			begin
-				snakes << get_snake( board_size )
+				elements << (yield board_size)
 			rescue StandardError => e
-				puts "Invalid snake, retry.  message: #{e}"
+				puts "Invalid element, retry.  message: #{e}"
 				retry
 			end
 		end
 
-		#validate no snakes start at the same spot
-		start_indexes = snakes.map { |snake| snake.from }
+		#validate no elements start at the same spot
+		start_indexes = elements.map { |element| element.from }
 
-		raise "Two snakes start at the same spot! #{start_indexes}" if start_indexes.uniq != start_indexes
+		raise "Two elements start at the same spot! #{start_indexes}" if start_indexes.uniq != start_indexes
 
-		snakes
+		elements
 	rescue RuntimeError => e
-		puts "Restarting snakes generation: #{e}"
-		snakes.clear
-		retry
-	end
-
-	def generate_ladders_by_brute_force(board_size, number_of_ladders)
-		ladders = []
-		number_of_ladders.times do
-			begin
-				ladders << get_ladder( board_size )
-			rescue StandardError => e
-				puts "Invalid snake, retry.  message: #{e}"
-				retry
-			end
-		end
-
-		#validate no ladders start at the same spot
-		start_indexes = ladders.map { |snake| snake.from }
-
-		raise "Two ladders start at the same spot! #{start_indexes}" if start_indexes.uniq != start_indexes
-
-		ladders
-	rescue RuntimeError => e
-		puts "Restarting ladders generation: #{e}"
-		ladders.clear
+		puts "Restarting elements generation: #{e}"
+		elements.clear
 		retry
 	end
 
