@@ -45,7 +45,7 @@ class Dice
 end
 
 class Board
-	attr_reader :snakes, :ladders, :rows, :cols
+	attr_reader :snakes, :ladders, :rows, :cols, :size
 
 	def initialize(snakes, ladders, rows = 6, cols = 5)
 		@snakes, @ladders, @rows, @cols = snakes, ladders, rows, cols
@@ -56,8 +56,8 @@ class Board
 		next_position = current_position + advance_positions
 
 		if next_position > @size
-			puts "Current position + dice result is bigger than board size, bouncing back from end!"
-			next_position = current_position + (next_position - @size)
+			puts "Current position + dice result is bigger than board size, bouncing back from end! #{(next_position - @size)} positions."
+			next_position = @size - (next_position - @size)
 		end
 
 		tentative_next_position = next_position
@@ -125,6 +125,21 @@ class Board
 			retry
 		end
 
+		def get_snake(board_size)
+			random = Random.new
+			from = random.rand 2..(board_size - 1)
+			to = random.rand 1..(board_size - 1)
+			puts "from #{from} to #{to}"
+			Snake.new from, to
+		end
+
+		def get_ladder(board_size)
+			random = Random.new
+			from = random.rand 2..(board_size - 1)
+			to = random.rand 2..(board_size - 1)
+			Ladder.new from, to
+		end
+
 		def get_standard_algorithm
 			lambda do |board_size, number_of_snakes, number_of_ladders|
 				valid_range = 2..(board_size -1)
@@ -148,20 +163,6 @@ class Board
 			elements
 		end
 
-		def get_snake(board_size)
-			random = Random.new
-			from = random.rand 2..(board_size - 1)
-			to = random.rand 1..(board_size - 1)
-			puts "from #{from} to #{to}"
-			Snake.new from, to
-		end
-
-		def get_ladder(board_size)
-			random = Random.new
-			from = random.rand 2..(board_size - 1)
-			to = random.rand 2..(board_size - 1)
-			Ladder.new from, to
-		end
 	end #end of class methods definition
 end #end of Board class
 
@@ -177,6 +178,19 @@ class Player
 		puts "Player #{@chip}:#{@name} advances #{advance_positions}"
 		advance_positions
 	end
+
+	def ==(other)
+		@name == other.name && @chip == other.chip
+	end
+
+	alias eql? ==
+
+	def hash
+		val = 17
+		val = 31*val + @name.hash
+		val = 31*val + @chip.hash
+		val
+	end
 end
 
 class Game
@@ -186,6 +200,7 @@ class Game
 		@dice = Dice.new
 		@board = Board.generate_board
 		@players = []
+		@player_position = {}
 
 		player_names.each_with_index { |name, i| @players << Player.new(name, CHIP_COLORS[i]) }
 
@@ -193,11 +208,23 @@ class Game
 	end
 
 	def play
-		@players.each{ |player| player.takeTurn @dice}
+		player_position = {}
+		@players.each { |player| player_position[player] = 0 }
+
+		loop do
+			@players.each do |player|
+				advance_positions = player.takeTurn @dice
+				player_position[player] = @board.check_box player_position[player], advance_positions
+				if player_position[player] == @board.size
+					puts "We have a winner! The winner is #{player.name}"
+					raise StopIteration
+				end
+			end
+		end
 	end
 end
 
 
-board = Game.new "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
-p board
-board.play
+game = Game.new "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
+p game
+game.play
