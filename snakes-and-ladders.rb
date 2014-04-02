@@ -225,6 +225,18 @@ class Game
 end
 
 
+puts "Let's play a game"
 game = Game.new "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
 p game
+game.play
+
+puts "============================================================================================"
+puts "Let's abuse of Ruby's singleton methods and open classes and play an slightly different game"
+
+def game.overwrite_board
+	@board = Board.generate_board true
+end
+
+p game
+game.overwrite_board
 game.play
