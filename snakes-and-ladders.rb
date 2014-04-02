@@ -185,12 +185,9 @@ class Game
 	def initialize( *player_names )
 		@dice = Dice.new
 		@board = Board.generate_board
+		@players = []
 
-		i = 0
-		@players = player_names.map do |name|
-			i += 1
-			Player.new name, CHIP_COLORS[i - 1]
-		end
+		player_names.each_with_index { |name, i| @players << Player.new(name, CHIP_COLORS[i]) }
 
 		puts "Players ready: #{@players}"
 	end
