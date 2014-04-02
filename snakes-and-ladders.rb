@@ -80,7 +80,90 @@ class Board
 
 		next_position
 	end
-end
+
+	class << self
+		def generate_board(use_brute_force = false, board_size = 30, number_of_snakes = 5, number_of_ladders =5)
+
+			puts "Use brute force? #{use_brute_force}"
+			algorithm = if use_brute_force then get_brute_force_algorithm else get_standard_algorithm end
+
+			snakes, ladders = algorithm.call board_size, number_of_snakes, number_of_ladders
+
+			Board.new snakes, ladders
+		end
+
+		private
+
+		def get_brute_force_algorithm
+			lambda do |board_size, number_of_snakes, number_of_ladders|
+				snakes = generate_elements_by_brute_force(board_size, number_of_snakes) {|max_index| get_snake max_index }
+				ladders = generate_elements_by_brute_force(board_size, number_of_ladders) {|max_index| get_ladder max_index }
+				[snakes, ladders]
+			end
+		end
+
+		def generate_elements_by_brute_force(board_size, number_of_elements)
+			elements = []
+			number_of_elements.times do
+				begin
+					elements << (yield board_size)
+				rescue StandardError => e
+					puts "Invalid element, retry.  message: #{e}"
+					retry
+				end
+			end
+
+			#validate no elements start at the same spot
+			start_indexes = elements.map { |element| element.from }
+
+			raise "Two elements start at the same spot! #{start_indexes}" if start_indexes.uniq != start_indexes
+
+			elements
+		rescue RuntimeError => e
+			puts "Restarting elements generation: #{e}"
+			elements.clear
+			retry
+		end
+
+		def get_standard_algorithm
+			lambda do |board_size, number_of_snakes, number_of_ladders|
+				valid_range = 2..(board_size -1)
+				available_elements = valid_range.to_a.shuffle
+				snakes = generate_elements(available_elements, number_of_snakes) {|from, to| from > to ? Snake.new(from, to) : Snake.new(to, from) }
+				ladders = generate_elements(available_elements, number_of_ladders) {|from, to| if from < to then Ladder.new from, to else Ladder.new to, from end}
+				[snakes,ladders]
+			end
+		end
+
+		def generate_elements(available_elements, number_of_elements)
+			elements = []
+
+			number_of_elements.times do
+				p available_elements
+				first = available_elements.shift
+				second = available_elements.shift
+				elements << (yield first, second)
+			end
+
+			elements
+		end
+
+		def get_snake(board_size)
+			random = Random.new
+			from = random.rand 2..(board_size - 1)
+			to = random.rand 1..(board_size - 1)
+			puts "from #{from} to #{to}"
+			Snake.new from, to
+		end
+
+		def get_ladder(board_size)
+			random = Random.new
+			from = random.rand 2..(board_size - 1)
+			to = random.rand 2..(board_size - 1)
+			Ladder.new from, to
+		end
+	end #end of class methods definition
+end #end of Board class
 
 class Player
 	attr_reader :name, :chip
@@ -99,12 +182,9 @@ end
 class Game
 	CHIP_COLORS = [:blue, :red, :purple, :white, :green, :yellow]
 
-	def initialize(use_brute_force, *player_names)
+	def initialize( *player_names )
 		@dice = Dice.new
-
-		puts "Use brute force? #{use_brute_force}"
-		algorithm = if use_brute_force then get_brute_force_algorithm else get_standard_algorithm end
-		@board = generate_board &algorithm
+		@board = Board.generate_board
 
 		i = 0
 		@players = player_names.map do |name|
@@ -118,90 +198,9 @@ class Game
 	def play
 		@players.each{ |player| player.takeTurn @dice}
 	end
-
-	private
-
-	def generate_board()
-		number_of_snakes = 5
-		number_of_ladders =5
-		board_size = 30
-
-		snakes, ladders = yield board_size, number_of_snakes, number_of_ladders
-
-		Board.new snakes, ladders
-	end
-
-	def get_brute_force_algorithm()
-		lambda do |board_size, number_of_snakes, number_of_ladders|
-			snakes = generate_elements_by_brute_force(board_size, number_of_snakes) {|max_index| get_snake max_index }
-			ladders = generate_elements_by_brute_force(board_size, number_of_ladders) {|max_index| get_ladder max_index }
-			[snakes, ladders]
-		end
-	end
-
-	def generate_elements_by_brute_force(board_size, number_of_elements)
-		elements = []
-		number_of_elements.times do
-			begin
-				elements << (yield board_size)
-			rescue StandardError => e
-				puts "Invalid element, retry.  message: #{e}"
-				retry
-			end
-		end
-
-		#validate no elements start at the same spot
-		start_indexes = elements.map { |element| element.from }
-
-		raise "Two elements start at the same spot! #{start_indexes}" if start_indexes.uniq != start_indexes
-
-		elements
-	rescue RuntimeError => e
-		puts "Restarting elements generation: #{e}"
-		elements.clear
-		retry
-	end
-
-	def get_standard_algorithm()
-		lambda do |board_size, number_of_snakes, number_of_ladders|
-			valid_range = 2..(board_size -1)
-			available_elements = valid_range.to_a.shuffle
-			snakes = generate_elements(available_elements, number_of_snakes) {|from, to| from > to ? Snake.new(from, to) : Snake.new(to, from) }
-			ladders = generate_elements(available_elements, number_of_ladders) {|from, to| if from < to then Ladder.new from, to else Ladder.new to, from end}
-			[snakes,ladders]
-		end
-	end
-
-	def generate_elements(available_elements, number_of_elements)
-		elements = []
-
-		number_of_elements.times do
-			p available_elements
-			first = available_elements.shift
-			second = available_elements.shift
-			elements << (yield first, second)
-		end
-
-		elements
-	end
-
-	def get_snake(board_size)
-		random = Random.new
-		from = random.rand 2..(board_size - 1)
-		to = random.rand 1..(board_size - 1)
-		puts "from #{from} to #{to}"
-		Snake.new from, to
-	end
-
-	def get_ladder(board_size)
-		random = Random.new
-		from = random.rand 2..(board_size - 1)
-		to = random.rand 2..(board_size - 1)
-		Ladder.new from, to
-	end
 end
 
 
-board = Game.new false, "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
+board = Game.new "Big Boss", "Solid Snake", "Liquid Snake", "The Boss", "Psycho Mantis"
 p board
 board.play
