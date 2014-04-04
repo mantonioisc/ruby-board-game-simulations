@@ -1,3 +1,5 @@
+require 'observer'
+
 module Loteria
 	DECK_OF_CARDS = [:el_gallo, :el_diablito, :la_dama, :el_catrin, :el_paraguas, :la_sirena, :la_escalera, :la_botella,
 		:el_barril, :el_arbol, :el_melon, :el_valiente, :el_gorrito, :la_muerte, :la_pera, :la_bandera, :el_bandolon,
@@ -7,16 +9,34 @@ module Loteria
 		:el_venado, :el_sol, :la_corona, :la_chalupa, :el_pino, :el_pescado, :la_palma, :la_maceta, :el_arpa, :la_rana]
 
 	class Announcer
+		include Observable
+
 		def initialize
 			@deck = DECK_OF_CARDS.dup.shuffle
 		end
 
 		def announce_card
-			@deck.shift
+			card = @deck.shift
+			puts "\nCard played: #{card}"
+			#Call PLayer#updateputs "\nCard played: #{card_played}"
+			changed
+			notify_observers card
+			card
+		end
+
+		def end?
+			@finished || @deck.empty?
+		end
+
+		def update(loteria)
+			@finished = true
+			puts "\nGame finished! #{loteria} won!"
 		end
 	end
 
 	class Player
+		include Observable
+
 		attr_reader :name
 
 		def initialize(name)
@@ -34,10 +54,21 @@ module Loteria
 			@board.empty?
 		end
 
+		#required from Observable#add_observer
+		def update(card)
+			mark_card_in_board card
+			if board_complete?
+		 		puts "\nLoteria! #{@name} won."
+		 		#Call Announcer#update
+		 		changed
+		 		notify_observers @name
+		 	end
+		end
+
 		private
 
 		def generate_board(size = 16)
-			#board = []
+			board = []
 
 			available_cards = DECK_OF_CARDS.dup.shuffle
 
@@ -50,28 +81,23 @@ module Loteria
 	class Game
 		def initialize(*player_names)
 			@announcer = Announcer.new
-			@players = player_names.map { |name| Player.new name }
+			@players = player_names.map do |name|
+				player = Player.new name
+				@announcer.add_observer player
+				player.add_observer @announcer
+				player
+			end
 		end
 
 		def play
-			loop do
-				card_played = @announcer.announce_card
-				puts "\nCard played: #{card_played}"
-
-				@players.each do |player|
-					player.mark_card_in_board card_played
-
-					if player.board_complete?
-						puts "\nLoteria! #{player.name} won."
-						raise StopIteration
-					end
-				end
+			until @announcer.end?
+				@announcer.announce_card
 			end
 		end
 	end
 
 end
 
-game = Loteria::Game.new "Bruce", "Alfred", "Tim", "Azrael"
+game = Loteria::Game.new "El Santo", "Blue Demon", "Atlantis", "Tinieblas"
 p game
 game.play

@@ -35,11 +35,11 @@ class Dice
 		@random = Random.new
 	end
 
-	def throw()
+	def throw
 		@random.rand(1..6)
 	end
 
-	def throwTwice()
+	def throwTwice
 		@random.rand(1..12)
 	end
 end
@@ -181,6 +181,8 @@ class Player
 
 	def ==(other)
 		@name == other.name && @chip == other.chip
+	rescue
+		false
 	end
 
 	alias eql? ==
@@ -200,7 +202,6 @@ class Game
 		@dice = Dice.new
 		@board = Board.generate_board
 		@players = []
-		@player_position = {}
 
 		player_names.each_with_index { |name, i| @players << Player.new(name, CHIP_COLORS[i]) }
 
