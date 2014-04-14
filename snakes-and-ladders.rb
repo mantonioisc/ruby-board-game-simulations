@@ -201,25 +201,21 @@ class Game
 	def initialize( *player_names )
 		@dice = Dice.new
 		@board = Board.generate_board
-		@players = []
 
-		player_names.each_with_index { |name, i| @players << Player.new(name, CHIP_COLORS[i]) }
+		@players = player_names.zip(CHIP_COLORS).map {|name, chip| Player.new name, chip}
 
 		puts "Players ready: #{@players}"
 	end
 
 	def play
-		player_position = {}
-		@players.each { |player| player_position[player] = 0 }
+		player_position = Hash.new(0)
 
-		loop do
-			@players.each do |player|
-				advance_positions = player.takeTurn @dice
-				player_position[player] = @board.check_box player_position[player], advance_positions
-				if player_position[player] == @board.size
-					puts "We have a winner! The winner is #{player.name}"
-					raise StopIteration
-				end
+		@players.cycle do |player|
+			advance_positions = player.takeTurn @dice
+			player_position[player] = @board.check_box player_position[player], advance_positions
+			if player_position[player] == @board.size
+				puts "We have a winner! The winner is #{player.name}"
+				break
 			end
 		end
 	end

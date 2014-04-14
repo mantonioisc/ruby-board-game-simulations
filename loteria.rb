@@ -68,13 +68,8 @@ module Loteria
 		private
 
 		def generate_board(size = 16)
-			board = []
-
 			available_cards = DECK_OF_CARDS.dup.shuffle
-
-			size.times {(board ||= []) << available_cards.shift}
-
-			board
+			available_cards.first size
 		end
 	end
 
