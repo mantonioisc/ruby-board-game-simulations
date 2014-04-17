@@ -14,37 +14,16 @@ class DiceSet
 end
 
 class Player
-	attr_reader :name, :score
+	attr_reader :name
 
-	def initialize(name, rules_proc)
+	def initialize(name)
 		@name = name
-		@score = 0
-		@rules = rules_proc #yeah you could say each player can cheat by playing by their own rules of scoring
 	end
 
 	def take_turn(dice_set, dice_number = NUMBER_OF_DICE)
-		puts "=>Is #{@name}'s turn<="
-		dice_set.roll dice_number
-		turn_score = 0
-		score, non_scoring_dices = @rules.call dice_set.values
-		turn_score += score
-		loop do
-			if non_scoring_dices == dice_number
-				puts "#{@name} lost #{turn_score} by greed"
-				raise StopIteration
-			elsif keep_rolling? turn_score, non_scoring_dices
-				dice_number = non_scoring_dices
-				dice_set.roll dice_number
-				score, non_scoring_dices = @rules.call dice_set.values
-				turn_score += score
-			else
-				check_and_set_score turn_score
-				raise StopIteration
-			end
-		end
+		dice_set.roll dice_number #1 liner I know, but the player should be allowed to throw the dices by himself
 	end
 
-	private
 	def keep_rolling? turn_score, non_scoring_dices
 		return false if non_scoring_dices == 0
 		if turn_score > MINIMUM_SCORE
@@ -56,57 +35,77 @@ class Player
 		end
 	end
 
-	def check_and_set_score(turn_score)
-		if @score >= MINIMUM_SCORE || turn_score >= MINIMUM_SCORE
-			@score += turn_score
-		end
-		puts "#{@name} got #{score} and has a total of: #{@score}"
+	def to_s
+		@name
 	end
 end
 
 class GreedGame
 	def initialize(*player_names)
 		@dice_set = DiceSet.new
-		rules_proc = get_scoring_procedure
-		#Play the game by my rules! and don't cheat
-		@players = player_names.map{|name| Player.new name, rules_proc}
+		@players = Hash[player_names.map{|name| [Player.new(name), 0]}] #Keep players and their score in a hash
 	end
 
 	def play
-		puts "This people is playing Greed: #{@players}"
-		scores = [0]
-		until scores.max >= MAXIMUM_SCORE
-			scores = @players.map {|player| player.take_turn @dice_set; player.score }
-			puts "===Global scores #{scores}==="
+		puts "These people is playing Greed: #{@players.keys}"
+		until @players.max_by{|player, score| score}[1] >= MAXIMUM_SCORE
+			@players.each do |player, score|
+				@players[player] = let_player_roll player, score
+			end
+			puts "===Global scores #{@players}==="
 		end
-		winner = @players.max_by {|player| player.score}
+		winner = @players.max_by{|player, score| score}[0]
 		puts "_\\|/_The winner is #{winner.name}!_\\|/_"
 	end
 
 	private
-	def get_scoring_procedure
-		lambda do |dice_values|
-			zero_counter = 0
-			result = dice_values.inject(Hash.new 0){|points, d| points[d]+=1; points}.inject(0) do |sum, (dice_value, count)|
-				sum += if dice_value == 1 && count >= 3
-					1000 + 100*(count-3)
-				elsif dice_value == 1 && count < 3
-					100*count
-				elsif dice_value == 5 && count >= 3
-					500 + 50*(count-3)
-				elsif dice_value == 5 && count < 3
-					50*count
-				elsif count >= 3
-					100*dice_value
-				else
-					zero_counter += count
-					0
+	def let_player_roll(player, total_score)
+		puts "=>Is #{player.name}'s turn<="
+		turn_score, dice_number = 0, NUMBER_OF_DICE
+		player.take_turn @dice_set, dice_number #Lend the player the dice set to roll, the player should not use his own dices in real life
+		score, non_scoring_dices = calculate_score @dice_set.values
+		turn_score += score
+		loop do
+			if non_scoring_dices == dice_number
+				puts "#{player.name} lost #{turn_score} by greed"
+				raise StopIteration
+			elsif player.keep_rolling? turn_score, non_scoring_dices #Ask the player if he wants to continue
+				dice_number = non_scoring_dices
+				player.take_turn @dice_set, dice_number #tell the player how many dice to roll this time
+				score, non_scoring_dices = calculate_score @dice_set.values
+				turn_score += score
+			else
+				if total_score >= MINIMUM_SCORE || turn_score >= MINIMUM_SCORE
+					total_score += turn_score
 				end
+				puts "#{player.name} got #{turn_score} and has a total of: #{total_score}"
+				raise StopIteration
 			end
-			[result, zero_counter]
 		end
+		total_score
+	end
+
+	def calculate_score(dice_values)
+		zero_counter = 0
+		result = dice_values.inject(Hash.new 0){|points, d| points[d]+=1; points}.inject(0) do |sum, (dice_value, count)|
+			sum += if dice_value == 1 && count >= 3
+				1000 + 100*(count-3)
+			elsif dice_value == 1 && count < 3
+				100*count
+			elsif dice_value == 5 && count >= 3
+				500 + 50*(count-3)
+			elsif dice_value == 5 && count < 3
+				50*count
+			elsif count >= 3
+				100*dice_value
+			else
+				zero_counter += count
+				0
+			end
+		end
+		[result, zero_counter]
 	end
 end
 
-game = GreedGame.new "Cat", "Dog", "Mouse"
+game = GreedGame.new "Cat", "Dog", "Mouse","OctoCat"
 game.play
