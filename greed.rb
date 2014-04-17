@@ -25,35 +25,40 @@ class Player
 	def take_turn(dice_set, dice_number = NUMBER_OF_DICE)
 		puts "=>Is #{@name}'s turn<="
 		dice_set.roll dice_number
-		sum = 0
+		turn_score = 0
 		score, non_scoring_dices = @rules.call dice_set.values
-		sum += score
+		turn_score += score
 		loop do
 			if non_scoring_dices == dice_number
-				puts "#{@name} lost #{sum} by greed"
+				puts "#{@name} lost #{turn_score} by greed"
 				raise StopIteration
-			elsif keep_rolling? non_scoring_dices
+			elsif keep_rolling? turn_score, non_scoring_dices
 				dice_number = non_scoring_dices
 				dice_set.roll dice_number
 				score, non_scoring_dices = @rules.call dice_set.values
-				sum += score
+				turn_score += score
 			else
-				check_and_set_score sum
+				check_and_set_score turn_score
 				raise StopIteration
 			end
 		end
 	end
 
 	private
-	def keep_rolling? non_scoring_dices
-		#puts "Non scoring dices #{non_scoring_dices}"
-		return true if non_scoring_dices != 0
-		false #just play once for now
+	def keep_rolling? turn_score, non_scoring_dices
+		return false if non_scoring_dices == 0
+		if turn_score > MINIMUM_SCORE
+			keep = rand(0..1) == 0 #Let him decide randomly if we wants to play
+			puts "#{@name} is taking his #{turn_score} points" unless keep
+			keep
+		else
+			true
+		end
 	end
 
-	def check_and_set_score(score)
-		if @score >= MINIMUM_SCORE || score >= MINIMUM_SCORE
-			@score += score
+	def check_and_set_score(turn_score)
+		if @score >= MINIMUM_SCORE || turn_score >= MINIMUM_SCORE
+			@score += turn_score
 		end
 		puts "#{@name} got #{score} and has a total of: #{@score}"
 	end
