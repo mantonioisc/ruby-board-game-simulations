@@ -41,6 +41,8 @@ class Player
 end
 
 class GreedGame
+	attr_reader :players
+
 	def initialize(*player_names)
 		@dice_set = DiceSet.new
 		@players = Hash[player_names.map{|name| [Player.new(name), 0]}] #Keep players and their score in a hash
@@ -56,6 +58,7 @@ class GreedGame
 		end
 		winner = @players.max_by{|player, score| score}[0]
 		puts "_\\|/_The winner is #{winner.name}!_\\|/_"
+		winner
 	end
 
 	private
@@ -97,6 +100,7 @@ class GreedGame
 			elsif dice_value == 5 && count < 3
 				50*count
 			elsif count >= 3
+				zero_counter += (count-3)
 				100*dice_value
 			else
 				zero_counter += count
@@ -107,5 +111,5 @@ class GreedGame
 	end
 end
 
-game = GreedGame.new "Cat", "Dog", "Mouse","OctoCat"
+game = GreedGame.new "Cat", "Dog", "Mouse", "OctoCat"
 game.play
