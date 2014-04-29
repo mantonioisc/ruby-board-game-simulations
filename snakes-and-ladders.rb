@@ -39,7 +39,7 @@ class Dice
 		@random.rand(1..6)
 	end
 
-	def throwTwice
+	def throw_twice
 		@random.rand(1..12)
 	end
 end
@@ -173,7 +173,7 @@ class Player
 		@name, @chip = name, chip
 	end
 
-	def takeTurn(dice)
+	def take_turn(dice)
 		advance_positions = dice.throw
 		puts "Player #{@chip}:#{@name} advances #{advance_positions}"
 		advance_positions
@@ -211,7 +211,7 @@ class Game
 		player_position = Hash.new(0)
 
 		@players.cycle do |player|
-			advance_positions = player.takeTurn @dice
+			advance_positions = player.take_turn @dice
 			player_position[player] = @board.check_box player_position[player], advance_positions
 			if player_position[player] == @board.size
 				puts "We have a winner! The winner is #{player.name}"

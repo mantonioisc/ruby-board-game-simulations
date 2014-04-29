@@ -1,5 +1,6 @@
 # Yojimbo's function simulation
 # Program to calculate number of turns and invested Gil to make FFX Aeon Yojimbo to be at maximum compatibility.
+# This code covers the case when you answer option 3="To defeat the most powerful of enemies." when questioned by Yojimbo.
 # Works for PS2 version (USA&Japan) and the new PS3 Final Fantasy X/X-2 HD Remaster (International)
 # Once at max compatibility calculates how many "Zanmato" attacks are performed in 100 turns.
 # With data from http://www.neoseeker.com/resourcelink.html?rlid=65600
@@ -253,6 +254,19 @@ y.attack_max_compatibility 256, false, 4
 y.attack_max_compatibility 512, false, 4
 y.attack_max_compatibility 1024, false, 4
 y.attack_max_compatibility 2048, false, 4
+
+puts "========Yojimbo international at max compatibility against strong fiends with Overdrive! =========="
+y = Yojimbo.international
+y.attack_max_compatibility 4, true, 4
+y.attack_max_compatibility 8, true, 4
+y.attack_max_compatibility 16, true, 4
+y.attack_max_compatibility 32, true, 4
+y.attack_max_compatibility 64, true, 4
+y.attack_max_compatibility 128, true, 4
+y.attack_max_compatibility 256, true, 4
+y.attack_max_compatibility 512, true, 4
+y.attack_max_compatibility 1024, true, 4
+y.attack_max_compatibility 2048, true, 4
 
 
 puts "========Yojimbo USA & Japan at start =========="
